@@ -6,19 +6,24 @@ const _ = require("fs");
 const rpcEndpoint = "https://rpc.cliffnet.cosmwasm.com:443";
 
 // Example user from scripts/wasmd/README.md
-const sender = {
+const contract_owner = {
     mnemonic: "rare race capable trend seven pilot silent couple battle zone camera clarify laundry fix ship citizen good crater ribbon cloud journey paddle bulk much",
     address: "wasm1mgl5svtz8sy3s6aavx9589txu789djd0ewsqdl",
 };
 
-const recipient = {
+const minter = {
     mnemonic: "target below announce scorpion six broccoli viable tail dance leave cradle young rescue brick merry mean duty because clog hat shop hub that enter",
     address: "wasm1km7eq7csp9my73994c5c8m5hec4wkl9mnsyf0q",
 };
 
-const arbiter = {
+const nft_owner = {
     mnemonic: "oblige apple beef tomato husband bacon nothing monster tell phone able grunt purchase manage exotic scrap fish plunge zone rose device dove bid bar",
     address: "wasm12z2lfyv4297tzs0ck3taswfesx86x78rypm30l",
+};
+
+const anyone = {
+    mnemonic: "width divide aspect upper service cake cave ahead base panic special dance page abstract talent swallow husband huge gold bridge brief area plug coil",
+    address: "wasm1arceqe2pct82n8ujn2dltasmjkxfunpjv5h37p",
 };
 
 function objectToBase64(input) {
@@ -121,11 +126,11 @@ const uploadContract = async (wasmPath) => {
     const gasPrice = GasPrice.fromString("0.05upebble");
 
     // Upload contract
-    const sender_wallet = await DirectSecp256k1HdWallet.fromMnemonic(sender.mnemonic, { prefix: "wasm" });
-    const sender_client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, sender_wallet);
+    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(contract_owner.mnemonic, { prefix: "wasm" });
+    const client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, wallet);
     const wasm = _.readFileSync(wasmPath);
     const uploadFee = calculateFee(2_500_000, gasPrice);
-    const uploadReceipt = await sender_client.upload(sender.address, wasm, uploadFee, "Upload hackatom contract");
+    const uploadReceipt = await client.upload(contract_owner.address, wasm, uploadFee, "Upload hackatom contract");
     console.log("Upload succeeded. Receipt:", uploadReceipt);
 
     return uploadReceipt.codeId;
@@ -133,12 +138,12 @@ const uploadContract = async (wasmPath) => {
 
 const instantiate = async (codeId, msg) => {
     // Upload contract
-    const sender_wallet = await DirectSecp256k1HdWallet.fromMnemonic(sender.mnemonic, { prefix: "wasm" });
-    const sender_client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, sender_wallet);
+    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(contract_owner.mnemonic, { prefix: "wasm" });
+    const client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, wallet);
     const gasPrice = GasPrice.fromString("0.05upebble");
     const instantiateFee = calculateFee(500_000, gasPrice);
-    const { contractAddress } = await sender_client.instantiate(
-        sender.address,
+    const { contractAddress } = await client.instantiate(
+        contract_owner.address,
         codeId,
         msg,
         "My instance",
@@ -172,17 +177,17 @@ const auction_deploy = async () => {
 const updateMinters = async (contractAddress) => {
     const gasPrice = GasPrice.fromString("0.05upebble");
 
-    const sender_wallet = await DirectSecp256k1HdWallet.fromMnemonic(sender.mnemonic, { prefix: "wasm" });
-    const sender_client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, sender_wallet);
+    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(contract_owner.mnemonic, { prefix: "wasm" });
+    const client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, wallet);
 
     const executeFee = calculateFee(300_000, gasPrice);
     const escrow_id = "random";
-    const create_result = await sender_client.execute(
-        sender.address, 
+    const create_result = await client.execute(
+        contract_owner.address, 
         contractAddress,  
         {
             update_minter: {
-                minter: sender.address, 
+                minter: minter.address, 
             }
         }, 
         executeFee,
@@ -195,12 +200,12 @@ const updateMinters = async (contractAddress) => {
 const setNftAddress = async (contract_address, cw721_address) => {
     const gasPrice = GasPrice.fromString("0.05upebble");
 
-    const sender_wallet = await DirectSecp256k1HdWallet.fromMnemonic(sender.mnemonic, { prefix: "wasm" });
-    const sender_client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, sender_wallet);
+    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(contract_owner.mnemonic, { prefix: "wasm" });
+    const client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, wallet);
 
     const executeFee = calculateFee(300_000, gasPrice);
-    const create_result = await sender_client.execute(
-        sender.address, 
+    const create_result = await client.execute(
+        contract_owner.address, 
         contract_address,  
         {
             set_nft_address: {
@@ -217,43 +222,40 @@ const setNftAddress = async (contract_address, cw721_address) => {
 const mint = async (contractAddress) => {
     const gasPrice = GasPrice.fromString("0.05upebble");
 
-    const sender_wallet = await DirectSecp256k1HdWallet.fromMnemonic(sender.mnemonic, { prefix: "wasm" });
+    const sender_wallet = await DirectSecp256k1HdWallet.fromMnemonic(minter.mnemonic, { prefix: "wasm" });
     const sender_client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, sender_wallet);
 
     const executeFee = calculateFee(300_000, gasPrice);
     const create_result = await sender_client.execute(
-        sender.address, 
+        minter.address, 
         contractAddress,  
         {
             mint: {
-                // msg: {
-                    "collection": "1",
-                    "description": "glassflow nfts",
-                    "external_link": "https://external",
-                    "image_uri": "https://image/image.png",
-                    "init_price": "10000",
-                    "name": "mynft",
-                    "num_nfts": "1",
-                    "num_real_repr": "1",
-                    "owner": contractAddress,
-                    "royalties": [
-                        {
-                            "address": sender.address,
-                            "royalty_rate": "0.1"
-                        },
-                        {
-                            "address": recipient.address,
-                            "royalty_rate": "0.2"
-                        }
-                    ]
-                // }
+                "collection": "1",
+                "description": "glassflow nfts",
+                "external_link": "https://external",
+                "image_uri": "https://image/image.png",
+                "init_price": "10000",
+                "name": "mynft1",
+                "num_nfts": "1",
+                "num_real_repr": "1",
+                "owner": nft_owner.address,
+                "royalties": [
+                    {
+                        "address": nft_owner.address,
+                        "royalty_rate": "0.1"
+                    },
+                    {
+                        "address": minter.address,
+                        "royalty_rate": "0.2"
+                    }
+                ]
             }
         }, 
         executeFee,
         "",
-        [] //
+        [] 
     );
-    // console.log("res: ", create_result.logs[0].events[2].attributes);
 }
 
 
@@ -288,21 +290,36 @@ const queryNFTIds = async (contractAddress) => {
 
 // const contractAddress = "wasm1sxywggndhctyh6y78tkx6pzehfv85hvgf02n5z5y38skwcats8zqcs9qtq";
 
-const placeListing = async (contract_address) => {
+const placeListing = async (contract_address, cw721_address) => {
     const gasPrice = GasPrice.fromString("0.05upebble");
 
-    const sender_wallet = await DirectSecp256k1HdWallet.fromMnemonic(sender.mnemonic, { prefix: "wasm" });
-    const sender_client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, sender_wallet);
+    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(nft_owner.mnemonic, { prefix: "wasm" });
+    const client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, wallet);
 
     const executeFee = calculateFee(400_000, gasPrice);
-    const create_result = await sender_client.execute(
-        sender.address, 
+
+    const change_ownership_res = await client.execute(
+        nft_owner.address,
+        cw721_address,
+        {
+            approve: {
+                spender: contract_address,
+                token_id: "GF.1",
+            }
+        },
+        executeFee,
+        "",
+        []
+    )
+
+    const create_result = await client.execute(
+        nft_owner.address, 
         contract_address,  
         {
             place_listing: {
                 id: "GF.1",  //nft address
                 minimum_bid: {
-                    amount: "10000",
+                    amount: "12000",
                     info: {
                         // token: {
                         //     contract_addr: "terraxxx"
@@ -324,12 +341,12 @@ const placeListing = async (contract_address) => {
 const bidListing = async (contract_address) => {
     const gasPrice = GasPrice.fromString("0.05upebble");
 
-    const sender_wallet = await DirectSecp256k1HdWallet.fromMnemonic(sender.mnemonic, { prefix: "wasm" });
-    const sender_client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, sender_wallet);
+    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(anyone.mnemonic, { prefix: "wasm" });
+    const client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, wallet);
 
     const executeFee = calculateFee(400_000, gasPrice);
-    const create_result = await sender_client.execute(
-        sender.address, 
+    const create_result = await client.execute(
+        anyone.address, 
         contract_address,  
         {
             bid_listing: {
@@ -357,12 +374,12 @@ const bidListing = async (contract_address) => {
 const withdrawListing = async (contract_address) => {
     const gasPrice = GasPrice.fromString("0.05upebble");
 
-    const sender_wallet = await DirectSecp256k1HdWallet.fromMnemonic(sender.mnemonic, { prefix: "wasm" });
-    const sender_client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, sender_wallet);
+    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(nft_owner.mnemonic, { prefix: "wasm" });
+    const client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, wallet);
 
     const executeFee = calculateFee(400_000, gasPrice);
-    const create_result = await sender_client.execute(
-        sender.address, 
+    const create_result = await client.execute(
+        nft_owner.address, 
         contract_address,  
         {
             withdraw_listing: {
@@ -403,17 +420,17 @@ const queryCw721NFTInfo = async (contractAddress) => {
 const cw721Mint = async (contractAddress) => {
     const gasPrice = GasPrice.fromString("0.05upebble");
 
-    const sender_wallet = await DirectSecp256k1HdWallet.fromMnemonic(sender.mnemonic, { prefix: "wasm" });
-    const sender_client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, sender_wallet);
+    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(owner.mnemonic, { prefix: "wasm" });
+    const client = await SigningCosmWasmClient.connectWithSigner(rpcEndpoint, wallet);
 
     const executeFee = calculateFee(300_000, gasPrice);
-    const create_result = await sender_client.execute(
-        sender.address, 
+    const create_result = await client.execute(
+        minter.address, 
         contractAddress,  
         {
             mint: {
                 // msg: {
-                    owner: sender.address,
+                    owner: owner.address,
                     token_id: "mynft6",
                     token_uri: "https://glassflow",
                     extension: 
@@ -428,46 +445,46 @@ const cw721Mint = async (contractAddress) => {
                         "num_real_repr": "1",
                         "royalties": [
                             {
-                                "address": sender.address,
+                                "address": owner.address,
                                 "royalty_rate": "0.1"
                             },
                             {
-                                "address": recipient.address,
+                                "address": minter.address,
                                 "royalty_rate": "0.2"
                             }
                         ]
                     }
-
-                // }
             }
         }, 
         executeFee,
         "",
-        [] //
+        []
     );
 }
 
 const test = async () => {
-    // contractAddress = "wasm1e4x4gy5nxld4q80vy5dtph8tvljfhllvu58ja62lvldneuntkz2s4ldl4r";
-    // cw721_address = "wasm1xxyv2txe5fsnh7l30wymfzjt2ewzqhvuhes8n2t8kgrswkncye4qfgu2yz";
+    // contractAddress = "wasm1zkvvutgwftym29hy2855jyvuypwek3fn6rmhml86thqalml9d50spv9wpc";
+    // cw721_address = "wasm1cqaregc7k7xtckvsh2qa7079htka9hgve3ngrfvn3exvmmd5qc8qjltx5z";
     const contractAddress = await auction_deploy();
     const cw721_address = await cw721_deploy(contractAddress);
     await setNftAddress(contractAddress, cw721_address);
 
-        /*--------------  minting NFTs ----------------*/
-    await updateMinters(contractAddress);
+    /*--------------  minting NFTs ----------------*/
+    await updateMinters(contractAddress);   
     await queryMinters(contractAddress);
     await mint(contractAddress); 
     await queryNFTIds(contractAddress);
     await queryNFTInfo(contractAddress);
 
-    await placeListing(contractAddress);
+    /*-------------- auction ----------------*/
+    await placeListing(contractAddress, cw721_address);
+    await queryNFTInfo(contractAddress);
+
     await queryAuctionIds(contractAddress);
     await bidListing(contractAddress);
 
     await withdrawListing(contractAddress);
-    // await cw721Mint(cw721_address);
-    // await queryCw721NFTInfo(cw721_address);
+    await queryNFTInfo(contractAddress);
 }
 
 test();
