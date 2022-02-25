@@ -253,7 +253,7 @@ const queryNFTInfo = async (contractAddress, nft_addr) => {
         contractAddress, 
         {
             "query_nft_info": {
-                "token_id": "GF.1",
+                "token_id": "GF.6",
                 "nft_addr": nft_addr
             }
         } );
@@ -389,14 +389,16 @@ const queryAuctionIds = async (contractAddress) => {
 }
 
 const test = async () => {
-    contractAddress = "wasm19srzahl6tzhu8gd2xm5qu5vtcza44d7c0m425qk975ast6hmwjgqzsm5ee";
-    nft_address = "wasm1u5wgj5jgp73rmlre5lq774h7lc0uv74hhxm32je0uzgd5hkrdrrsev88fg";
+    contractAddress = "wasm1dy8rzv9fvaehucjt0yzgs44tgpju5pc3fppd22k80pvnum4td98qel0ah7";
+    nft_codeId = 301
+    // nft_address = "wasm1u5wgj5jgp73rmlre5lq774h7lc0uv74hhxm32je0uzgd5hkrdrrsev88fg";
     /*------------------- deploy auction contract and register minters. only the contract owner can do this ---------*/
     // const contractAddress = await auction_deploy();
     // const nft_codeId = await uploadContract( "./cw721_base.wasm");
 
-    // await updateMinters(contractAddress);   
-    // await queryMinters(contractAddress);
+    await updateMinters(contractAddress);   
+
+    await queryMinters(contractAddress);
 
     /*------------- create a collection ------------*/
     const nft_address = await create_collection(nft_codeId,        
@@ -413,15 +415,29 @@ const test = async () => {
     await queryNFTIds(contractAddress, nft_address);
     await queryNFTInfo(contractAddress, nft_address);
 
-    /*-------------- auction ----------------*/git
+    /*-------------- auction ----------------*/
     await placeListing(contractAddress, nft_address);
-    await queryNFTInfo(contractAddress, nft_address);
+    await queryNFTInfo(contractAddress, nft_address);  // check if is_listing is true after auction starts
 
     await queryAuctionIds(contractAddress);
     await bidListing(contractAddress);
 
     await withdrawListing(contractAddress);
-    await queryNFTInfo(contractAddress, nft_address);
+    await queryNFTInfo(contractAddress, nft_address);  // check if is_listing is false after auction ends
+
+
+    const nft_address_2 = await create_collection(nft_codeId,        
+        { 
+       "name": "glassflow_nft",  
+       "symbol": "GF", 
+       "minter": contractAddress,
+       "collection_name": "collection_2"
+   });
+
+   
+   await mint(contractAddress, nft_address_2); 
+   await queryNFTIds(contractAddress, nft_address_2);
+   await queryNFTInfo(contractAddress, nft_address_2);
 }
 
 test();
